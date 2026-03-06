@@ -5,8 +5,8 @@ import { useAccount, useConnect, useDisconnect, useReadContract, useWriteContrac
 import { parseEther, formatEther } from 'viem';
 import { injected } from 'wagmi/connectors';
 
-// TODO: Update this with your deployed contract address
-const CONTRACT_ADDRESS = '0x63dd4574Acbc908b9c1E59Fd7ef7B628B6EFac96';
+// Deployed BuyMeACoffee contract on Sepolia testnet
+const CONTRACT_ADDRESS = '0x63dd4574Acbc908b9c1E59Fd7ef7B628B6EFac96' as const;
 
 const CONTRACT_ABI = [
   {
