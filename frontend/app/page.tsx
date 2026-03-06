@@ -6,7 +6,7 @@ import { parseEther, formatEther } from 'viem';
 import { injected } from 'wagmi/connectors';
 
 // Deployed BuyMeACoffee contract on Sepolia testnet
-const CONTRACT_ADDRESS = '0x89fFbaeDFcCC9FC357B63CE2C991962Edf3f6045' as const;
+const CONTRACT_ADDRESS: `0x${string}` = '0x89fFbaeDFcCC9FC357B63CE2C991962Edf3f6045';
 
 const CONTRACT_ABI = [
   {
@@ -86,7 +86,7 @@ export default function Home() {
 
   // Read memos from contract
   const { data: memos, refetch: refetchMemos } = useReadContract({
-    address: CONTRACT_ADDRESS as `0x${string}`,
+    address: CONTRACT_ADDRESS,
     abi: CONTRACT_ABI,
     functionName: 'getMemos',
   });
@@ -118,7 +118,7 @@ export default function Home() {
 
     try {
       writeContract({
-        address: CONTRACT_ADDRESS as `0x${string}`,
+        address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'buyCoffee',
         args: [name, message],
