@@ -6,7 +6,7 @@ import { parseEther, formatEther } from 'viem';
 import { injected } from 'wagmi/connectors';
 
 // TODO: Update this with your deployed contract address
-const CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000';
+const CONTRACT_ADDRESS = '0x63dd4574Acbc908b9c1E59Fd7ef7B628B6EFac96';
 
 const CONTRACT_ABI = [
   {
