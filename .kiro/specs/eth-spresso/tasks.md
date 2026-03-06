@@ -6,7 +6,7 @@ This implementation plan breaks down the EthSpresso Web3 mini-dApp into discrete
 
 ## Tasks
 
-- [ ] 1. Set up project structure and dependencies
+- [x] 1. Set up project structure and dependencies
   - Create root directory structure with `contracts/`, `scripts/`, `frontend/` folders
   - Initialize Hardhat project with TypeScript support
   - Install Hardhat dependencies: `hardhat`, `@nomicfoundation/hardhat-toolbox`, `@nomicfoundation/hardhat-ethers`, `ethers`
@@ -15,15 +15,15 @@ This implementation plan breaks down the EthSpresso Web3 mini-dApp into discrete
   - Install frontend dependencies: `wagmi`, `viem`, `@tanstack/react-query`, `@rainbow-me/rainbowkit`
   - _Requirements: 9.1, 9.2_
 
-- [ ] 2. Implement EthSpresso smart contract
-  - [ ] 2.1 Create EthSpresso.sol contract with core structure
+- [x] 2. Implement EthSpresso smart contract
+  - [x] 2.1 Create EthSpresso.sol contract with core structure
     - Define `Memo` struct with sender, amount, message, and timestamp fields
     - Declare `owner` state variable and `memos` array
     - Implement constructor to set owner to msg.sender
     - Define `NewTip` event with indexed sender parameter
     - _Requirements: 1.2, 2.1_
   
-  - [ ] 2.2 Implement buyCoffee function
+  - [x] 2.2 Implement buyCoffee function
     - Add payable function that accepts memo string parameter
     - Validate msg.value > 0 with require statement and error message
     - Create Memo struct instance with msg.sender, msg.value, memo parameter, and block.timestamp
@@ -31,7 +31,7 @@ This implementation plan breaks down the EthSpresso Web3 mini-dApp into discrete
     - Emit NewTip event with all memo data
     - _Requirements: 1.1, 1.3, 1.4_
   
-  - [ ] 2.3 Implement view functions
+  - [x] 2.3 Implement view functions
     - Create getMemos() function returning Memo[] memory
     - Create getOwner() function returning address
     - _Requirements: 2.2, 3.1_
