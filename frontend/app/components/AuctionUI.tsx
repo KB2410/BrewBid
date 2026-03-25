@@ -39,16 +39,19 @@ const extractScValValue = (val: any): any => {
   // Robust extraction: Check common Soroban types
   try {
     // 1. Try hydrated getters (Stellar SDK pattern)
-    if (typeof hydrated.u64 === 'function') return hydrated.u64().toString();
-    if (typeof hydrated.i128 === 'function') return hydrated.i128().lo().toString();
-    if (typeof hydrated.str === 'function') return hydrated.str().toString();
-    if (typeof hydrated.sym === 'function') return hydrated.sym().toString();
-    if (typeof hydrated.address === 'function') return hydrated.address().toString();
+    if (typeof hydrated.u64 === 'function') return hydrated.u64()?.toString();
+    if (typeof hydrated.i128 === 'function') {
+        const parts = hydrated.i128();
+        return (parts.lo?.toString() || parts.lo?.()?.toString() || "0");
+    }
+    if (typeof hydrated.str === 'function') return hydrated.str()?.toString();
+    if (typeof hydrated.sym === 'function') return hydrated.sym()?.toString();
+    if (typeof hydrated.address === 'function') return hydrated.address()?.toString();
 
     // 2. Try raw property access (POJO fallback)
     const raw = hydrated._value || hydrated;
     if (raw.u64) return raw.u64.toString();
-    if (raw.i128) return raw.i128.lo.toString();
+    if (raw.i128) return (raw.i128.lo?.toString() || "0");
     if (raw.str) return raw.str.toString();
     if (raw.sym) return raw.sym.toString();
   } catch (e) {
@@ -131,7 +134,11 @@ export default function AuctionUI() {
       });
 
       // Flexible extraction in case of API variations (string vs object)
-      const signedXdr = typeof signedResponse === 'string' ? signedResponse : (signedResponse as any).signed_tx || signedResponse;
+      const signedXdr = typeof signedResponse === 'string' 
+        ? signedResponse 
+        : (signedResponse as any).signed_tx || (signedResponse as any).signedTransaction || signedResponse;
+      
+      console.log("Signed XDR extracted:", signedXdr);
 
       // Submit to the network
       const txToSubmit = TransactionBuilder.fromXDR(signedXdr as string, NETWORK_PASSPHRASE);
@@ -170,7 +177,10 @@ export default function AuctionUI() {
       tx = rpc.assembleTransaction(tx, simulatedTx as any).build();
 
       const signedResponse = await signTransaction(tx.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
-      const signedXdr = typeof signedResponse === 'string' ? signedResponse : (signedResponse as any).signed_tx || signedResponse;
+      const signedXdr = typeof signedResponse === 'string' 
+        ? signedResponse 
+        : (signedResponse as any).signed_tx || (signedResponse as any).signedTransaction || signedResponse;
+      
       const response = await server.sendTransaction(TransactionBuilder.fromXDR(signedXdr as string, NETWORK_PASSPHRASE));
       
       if (response.status === "PENDING") {
@@ -216,7 +226,10 @@ export default function AuctionUI() {
           // Assemble and submit
           tx = rpc.assembleTransaction(tx, simulatedTx as any).build();
           const signedResponse = await signTransaction(tx.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
-          const signedXdr = typeof signedResponse === 'string' ? signedResponse : (signedResponse as any).signed_tx || signedResponse;
+          const signedXdr = typeof signedResponse === 'string' 
+            ? signedResponse 
+            : (signedResponse as any).signed_tx || (signedResponse as any).signedTransaction || signedResponse;
+          
           const response = await server.sendTransaction(TransactionBuilder.fromXDR(signedXdr as string, NETWORK_PASSPHRASE));
           
           if (response.status === "PENDING") {
