@@ -36,7 +36,8 @@ export default function AuctionUI() {
   // Placeholder for auction data, will be fetched from contract
   const [auctionData, setAuctionData] = useState({
     highestBid: 0,
-    endTime: 0, // Unix timestamp in seconds
+    endTime: 0,
+    userRefund: 0,
   });
 
   // 1️⃣ CONNECT WALLET FUNCTION
@@ -110,6 +111,80 @@ export default function AuctionUI() {
       setIsBidding(false);
     }
   };
+  // 2.7️⃣ WITHDRAW REFUND FUNCTION
+  const withdrawRefund = async () => {
+    if (!walletAddress) return;
+    setIsBidding(true);
+    try {
+      const account = await server.getAccount(walletAddress);
+      const contract = new Contract(CONTRACT_ID);
+      
+      const userScVal = new Address(walletAddress).toScVal();
+
+      let tx = new TransactionBuilder(account, {
+        fee: "100",
+        networkPassphrase: NETWORK_PASSPHRASE,
+      })
+        .addOperation(contract.call("withdraw", userScVal))
+        .setTimeout(TimeoutInfinite)
+        .build();
+
+      const simulatedTx = await server.simulateTransaction(tx);
+      tx = rpc.assembleTransaction(tx, simulatedTx as any).build();
+
+      const signedResponse = await signTransaction(tx.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
+      const signedXdr = typeof signedResponse === 'string' ? signedResponse : (signedResponse as any).signed_tx || signedResponse;
+      const response = await server.sendTransaction(TransactionBuilder.fromXDR(signedXdr as string, NETWORK_PASSPHRASE));
+      
+      if (response.status === "PENDING") {
+        alert("Refund withdrawn! Check your wallet in a few seconds.");
+      }
+    } catch (error) {
+      console.error("Withdrawal failed:", error);
+      alert("Withdrawal failed. You may not have a pending refund.");
+    } finally {
+      setIsBidding(false);
+    }
+  };
+
+  // 2.5️⃣ INITIALIZE AUCTION FUNCTION (ADMIN ONLY)
+  const initializeAuction = async () => {
+    if (!walletAddress) return;
+    setIsBidding(true);
+    try {
+      const account = await server.getAccount(walletAddress);
+      const contract = new Contract(CONTRACT_ID);
+      
+      const adminScVal = new Address(walletAddress).toScVal();
+      const itemScVal = nativeToScVal("EthSpresso Auction Item", { type: "string" });
+      const tokenScVal = new Address("CDLZFC3SYJYDZT7K67VZ75HXZS65IRNC77T2GL2R37ZXYYRW3YJ4Y6Y4").toScVal(); // Native XLM Testnet SAC
+      const durationScVal = nativeToScVal(3600 * 24, { type: "u64" }); // 24 hours
+
+      let tx = new TransactionBuilder(account, {
+        fee: "100",
+        networkPassphrase: NETWORK_PASSPHRASE,
+      })
+        .addOperation(contract.call("initialize", adminScVal, itemScVal, tokenScVal, durationScVal))
+        .setTimeout(TimeoutInfinite)
+        .build();
+
+      const simulatedTx = await server.simulateTransaction(tx);
+      tx = rpc.assembleTransaction(tx, simulatedTx as any).build();
+
+      const signedResponse = await signTransaction(tx.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
+      const signedXdr = typeof signedResponse === 'string' ? signedResponse : (signedResponse as any).signed_tx || signedResponse;
+      const response = await server.sendTransaction(TransactionBuilder.fromXDR(signedXdr as string, NETWORK_PASSPHRASE));
+      
+      if (response.status === "PENDING") {
+        alert("Auction Initialized! Refresh in a few seconds.");
+      }
+    } catch (error) {
+      console.error("Initialization failed:", error);
+      alert("Initialization failed. See console.");
+    } finally {
+      setIsBidding(false);
+    }
+  };
 
   // 3️⃣ REAL-TIME EVENT LISTENER (POLLING)
   useEffect(() => {
@@ -165,6 +240,7 @@ export default function AuctionUI() {
       try {
         const contract = new Contract(CONTRACT_ID);
         // TransactionBuilder needs an Account object, not just an Address
+        // Using a valid Testnet G address as fallback for simulation
         const dummyAccount = new Account(walletAddress || "GBAF7Y5Y7Y5Y7Y5Y7Y5Y7Y5Y7Y5Y7Y5Y7Y5Y7Y5Y7Y5Y7Y5Y7Y5Y7Y5Y", "0");
         const getEndTimeOperation = contract.call("get_end_time");
         
@@ -182,6 +258,27 @@ export default function AuctionUI() {
           if (endTimeScVal && endTimeScVal.switch() === xdr.ScValType.scvU64()) {
             const endTime = Number(endTimeScVal.u64().toString());
             setAuctionData(prev => ({ ...prev, endTime }));
+          }
+        }
+
+        // Also fetch user refund if wallet is connected
+        if (walletAddress) {
+          const userScVal = new Address(walletAddress).toScVal();
+          const getRefundTx = new TransactionBuilder(dummyAccount, {
+            fee: "100",
+            networkPassphrase: NETWORK_PASSPHRASE,
+          })
+            .addOperation(contract.call("get_refund", userScVal))
+            .setTimeout(TimeoutInfinite)
+            .build();
+          
+          const refundSim = await server.simulateTransaction(getRefundTx);
+          if (refundSim && rpc.Api.isSimulationSuccess(refundSim)) {
+            const refundScVal = refundSim.result?.retval;
+            if (refundScVal && refundScVal.switch() === xdr.ScValType.scvI128()) {
+               const refundAmt = Number(refundScVal.i128().lo().toString());
+               setAuctionData(prev => ({ ...prev, userRefund: refundAmt }));
+            }
           }
         }
       } catch (error) {
@@ -270,6 +367,32 @@ export default function AuctionUI() {
               className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50"
             >
               {isBidding ? "Bidding..." : "Bid"}
+            </button>
+          </div>
+
+          {auctionData.userRefund > 0 && (
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg text-center">
+              <p className="text-orange-800 text-sm font-medium mb-2">
+                You have a {auctionData.userRefund} XLM refund available!
+              </p>
+              <button
+                onClick={withdrawRefund}
+                disabled={isBidding}
+                className="w-full bg-orange-500 text-white p-2 rounded hover:bg-orange-600 disabled:opacity-50"
+              >
+                {isBidding ? "Withdrawing..." : "Withdraw Refund"}
+              </button>
+            </div>
+          )}
+
+          <div className="pt-4 border-t">
+            <p className="text-xs text-center text-gray-400 mb-2">Admin Section</p>
+            <button
+              onClick={initializeAuction}
+              disabled={isBidding}
+              className="w-full text-xs bg-gray-200 text-gray-600 p-2 rounded hover:bg-gray-300"
+            >
+              (Re)Initialize Auction (24h)
             </button>
           </div>
         </div>
