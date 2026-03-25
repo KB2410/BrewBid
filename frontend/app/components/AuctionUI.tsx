@@ -23,6 +23,18 @@ const CONTRACT_ID = "CCABVHDIAQM4V4GYG6IOF36A5FKXUVYP7P7BFQXHCECHN673STEKFCHY";
 const RPC_URL = "https://soroban-testnet.stellar.org:443";
 const NETWORK_PASSPHRASE = Networks.TESTNET;
 
+// Helper to safely parse ScVal from simulation results or events
+const parseScVal = (val: any): xdr.ScVal | null => {
+  if (!val) return null;
+  if (typeof (val as any).switch === 'function') return val as xdr.ScVal;
+  try {
+    return xdr.ScVal.fromXDR(val as string, 'base64');
+  } catch (e) {
+    console.warn("Failed to parse ScVal as XDR:", e);
+    return null;
+  }
+};
+
 export default function AuctionUI() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [highestBid, setHighestBid] = useState<number>(0);
@@ -168,16 +180,27 @@ export default function AuctionUI() {
         .setTimeout(TimeoutInfinite)
         .build();
 
-      const simulatedTx = await server.simulateTransaction(tx);
-      tx = rpc.assembleTransaction(tx, simulatedTx as any).build();
+        const simulatedTx = await server.simulateTransaction(tx);
+        if (simulatedTx && rpc.Api.isSimulationSuccess(simulatedTx)) {
+          // Update local state with the simulated end time if possible
+          const endTimeScVal = parseScVal(simulatedTx.result?.retval);
+          if (endTimeScVal && endTimeScVal.switch() === xdr.ScValType.scvU64()) {
+            const endTime = Number(endTimeScVal.u64().toString());
+            setAuctionData(prev => ({ ...prev, endTime }));
+          }
 
-      const signedResponse = await signTransaction(tx.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
-      const signedXdr = typeof signedResponse === 'string' ? signedResponse : (signedResponse as any).signed_tx || signedResponse;
-      const response = await server.sendTransaction(TransactionBuilder.fromXDR(signedXdr as string, NETWORK_PASSPHRASE));
-      
-      if (response.status === "PENDING") {
-        alert("Auction Initialized! Refresh in a few seconds.");
-      }
+          // Assemble and submit for real
+          tx = rpc.assembleTransaction(tx, simulatedTx as any).build();
+          const signedResponse = await signTransaction(tx.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
+          const signedXdr = typeof signedResponse === 'string' ? signedResponse : (signedResponse as any).signed_tx || signedResponse;
+          const response = await server.sendTransaction(TransactionBuilder.fromXDR(signedXdr as string, NETWORK_PASSPHRASE));
+          
+          if (response.status === "PENDING") {
+            alert("Auction Initialized! Refresh in a few seconds.");
+          }
+        } else {
+             throw new Error("Init simulation failed");
+        }
     } catch (error) {
       console.error("Initialization failed:", error);
       alert("Initialization failed. See console.");
@@ -213,14 +236,13 @@ export default function AuctionUI() {
         if (response.events && response.events.length > 0) {
           response.events.forEach((event: any) => {
              console.log("New Event Detected:", event);
-             try {
-                // Parse XDR string back into ScVal
-                const rawVal = event.value as xdr.ScVal;
+              try {
+                // Safely parse XDR string back into ScVal
+                const rawVal = parseScVal(event.value);
+                if (!rawVal) return;
                 
                 // Rust emitted: env.events().publish((symbol_short!("Bid"), bidder), amount);
-                // `amount` is returned as the event's `value` containing an `i128` type.
                 if (rawVal.switch() === xdr.ScValType.scvI128()) {
-                    // Extracting the lo bit natively parses typical XLM numbers successfully in JS safely up to 2^53
                     const parsedAmount = Number(rawVal.i128().lo().toString());
                     setHighestBid(parsedAmount);
                     setAuctionData(prev => ({ ...prev, highestBid: parsedAmount }));
@@ -255,7 +277,7 @@ export default function AuctionUI() {
 
         const simulatedTx = await server.simulateTransaction(getEndTimeTx);
         if (simulatedTx && rpc.Api.isSimulationSuccess(simulatedTx)) {
-          const endTimeScVal = simulatedTx.result?.retval;
+          const endTimeScVal = parseScVal(simulatedTx.result?.retval);
           if (endTimeScVal && endTimeScVal.switch() === xdr.ScValType.scvU64()) {
             const endTime = Number(endTimeScVal.u64().toString());
             setAuctionData(prev => ({ ...prev, endTime }));
@@ -275,7 +297,7 @@ export default function AuctionUI() {
           
           const refundSim = await server.simulateTransaction(getRefundTx);
           if (refundSim && rpc.Api.isSimulationSuccess(refundSim)) {
-            const refundScVal = refundSim.result?.retval;
+            const refundScVal = parseScVal(refundSim.result?.retval);
             if (refundScVal && refundScVal.switch() === xdr.ScValType.scvI128()) {
                const refundAmt = Number(refundScVal.i128().lo().toString());
                setAuctionData(prev => ({ ...prev, userRefund: refundAmt }));
