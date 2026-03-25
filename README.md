@@ -57,6 +57,13 @@ npm install
 npm run dev
 ```
 
+### Running Smart Contract Tests
+Ensure you are in the `soroban-contracts` directory:
+```bash
+cd soroban-contracts
+cargo test
+```
+
 ### Contract Deployment (Testnet)
 ```bash
 soroban contract build

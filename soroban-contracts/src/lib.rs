@@ -1,7 +1,9 @@
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, token, Address, Env, String, symbol_short, Symbol
+    contract, contractimpl, contracttype, token, Address, Env, String, symbol_short
 };
+
+mod test;
 
 // Define the keys used to store state on the ledger
 #[contracttype]
@@ -132,5 +134,30 @@ impl EthSpressoAuction {
             (symbol_short!("Ended"), seller),
             highest_bid,
         );
+    }
+
+    /// Returns the current highest bidder
+    pub fn get_highest_bidder(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::HighestBidder)
+    }
+
+    /// Returns the current highest bid amount
+    pub fn get_highest_bid(env: Env) -> i128 {
+        env.storage().instance().get(&DataKey::HighestBid).unwrap_or(0)
+    }
+
+    /// Returns the end time of the auction
+    pub fn get_end_time(env: Env) -> u64 {
+        env.storage().instance().get(&DataKey::EndTime).unwrap_or(0)
+    }
+
+    /// Returns the refundable balance for a given user
+    pub fn get_refund(env: Env, user: Address) -> i128 {
+        env.storage().persistent().get(&DataKey::Refund(user)).unwrap_or(0)
+    }
+
+    /// Returns the item name
+    pub fn get_item_name(env: Env) -> String {
+        env.storage().instance().get(&DataKey::ItemName).unwrap()
     }
 }
