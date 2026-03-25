@@ -157,7 +157,7 @@ export default function AuctionUI() {
       
       const adminScVal = new Address(walletAddress).toScVal();
       const itemScVal = nativeToScVal("EthSpresso Auction Item", { type: "string" });
-      const tokenScVal = new Address("CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").toScVal(); 
+      const tokenScVal = new Address("CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4").toScVal(); 
       const durationScVal = nativeToScVal(3600 * 24, { type: "u64" }); // 24 hours
 
       let tx = new TransactionBuilder(account, {
@@ -240,8 +240,8 @@ export default function AuctionUI() {
       try {
         const contract = new Contract(CONTRACT_ID);
         // TransactionBuilder needs an Account object, not just an Address
-        // Fallback must be exactly 56 valid characters (A-Z, 2-7, no I, L, O, 0, 1)
-        const validFallback = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        // Fallback must be a valid 56-character StrKey with correct checksum
+        const validFallback = "GCVAOJMF36XH5D5ZONRFIXOQTLAA7HFI3BWUMBMQKGPEKL2FJIRNFWPO";
         const dummyAccount = new Account(walletAddress || validFallback, "0");
         const getEndTimeOperation = contract.call("get_end_time");
         
