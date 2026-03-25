@@ -5,9 +5,9 @@
 EthSpresso is a real-time decentralized auction platform built on the Stellar network leveraging Soroban smart contracts. It allows users to list digital items for auction with strict time limits, while buyers connect their Freighter wallets to place secure, escrowed bids. 
 
 ## 🔗 Official Submission Links
-* **Live Demo:** [Insert your Vercel/Netlify link here]
-* **Demo Video:** [Insert your YouTube/Loom link here]
-* **Feedback Document:** [Link to your uploaded user_feedback.xlsx file]
+* **Live Demo:** [https://frontend-chi-wheat-42.vercel.app](https://frontend-chi-wheat-42.vercel.app)
+* **Demo Video:** [[YOUR_VIDEO_URL]]
+* **Feedback Document:** [user_feedback.csv](file:///Users/kartikbotre/Projects/Stellar Mastery Projects/EthSpresso/user_feedback.csv)
 
 ---
 
