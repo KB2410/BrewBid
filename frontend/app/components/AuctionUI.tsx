@@ -99,8 +99,9 @@ export default function AuctionUI() {
     setIsBidding(true);
 
     try {
-      // Fetch the bidder's account sequence number
-      const account = await server.getAccount(walletAddress);
+      // 🚨 FIX: Correctly fetch and construct the Account object
+      const sourceAccount = await server.getAccount(walletAddress);
+      const account = new Account(walletAddress, sourceAccount.sequenceNumber());
       
       const contract = new Contract(CONTRACT_ID);
       
@@ -158,7 +159,8 @@ export default function AuctionUI() {
     if (!walletAddress) return;
     setIsBidding(true);
     try {
-      const account = await server.getAccount(walletAddress);
+      const sourceAccount = await server.getAccount(walletAddress);
+      const account = new Account(walletAddress, sourceAccount.sequenceNumber());
       const contract = new Contract(CONTRACT_ID);
       
       const userScVal = new Address(walletAddress).toScVal();
@@ -197,14 +199,18 @@ export default function AuctionUI() {
     if (!walletAddress) return;
     setIsBidding(true);
     try {
-      const account = await server.getAccount(walletAddress);
+      // 🚨 FIX: Correctly fetch and construct the Account object
+      const sourceAccount = await server.getAccount(walletAddress);
+      const account = new Account(walletAddress, sourceAccount.sequenceNumber());
+      
       const contract = new Contract(CONTRACT_ID);
       
       const adminScVal = new Address(walletAddress).toScVal();
-      const itemScVal = xdr.ScVal.scvString("EthSpresso Auction Item");
+      const itemScVal = xdr.ScVal.scvString("EthSpresso Special Roast");
       // Stellar Testnet Native XLM contract ID
       const tokenScVal = new Address("CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC").toScVal(); 
-      const durationScVal = new ScInt(3600 * 24).toU64();
+      // 🚨 FIX: Correct U64 formatting using ScInt's built-in converter
+      const durationScVal = new ScInt(3600 * 24).toU64(); 
 
       let tx = new TransactionBuilder(account, {
         fee: "100",
