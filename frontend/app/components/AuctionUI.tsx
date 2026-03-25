@@ -15,6 +15,7 @@ import {
   Account,
   Contract,
   TimeoutInfinite,
+  ScInt,
 } from "@stellar/stellar-sdk";
 
 // ⚠️ PASTE YOUR DEPLOYED CONTRACT ID HERE
@@ -105,10 +106,7 @@ export default function AuctionUI() {
       
       // Convert arguments to XDR ScVal types for Rust
       const bidderScVal = new Address(walletAddress).toScVal();
-      const amountScVal = xdr.ScVal.scvI128(new xdr.Int128Parts({
-        lo: xdr.Uint64.fromString(bidAmount),
-        hi: xdr.Int64.fromString("0")
-      }));
+      const amountScVal = new ScInt(bidAmount).toI128();
 
       // Build the transaction
       let tx = new TransactionBuilder(account, {
@@ -204,8 +202,9 @@ export default function AuctionUI() {
       
       const adminScVal = new Address(walletAddress).toScVal();
       const itemScVal = xdr.ScVal.scvString("EthSpresso Auction Item");
-      const tokenScVal = new Address("CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4").toScVal(); 
-      const durationScVal = xdr.ScVal.scvU64(xdr.Uint64.fromString((3600 * 24).toString()));
+      // Stellar Testnet Native XLM contract ID
+      const tokenScVal = new Address("CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC").toScVal(); 
+      const durationScVal = new ScInt(3600 * 24).toU64();
 
       let tx = new TransactionBuilder(account, {
         fee: "100",
