@@ -26,13 +26,29 @@ const NETWORK_PASSPHRASE = Networks.TESTNET;
 // Helper to safely parse ScVal from simulation results or events
 const parseScVal = (val: any): xdr.ScVal | null => {
   if (!val) return null;
-  if (typeof (val as any).switch === 'function') return val as xdr.ScVal;
-  try {
-    return xdr.ScVal.fromXDR(val as string, 'base64');
-  } catch (e) {
-    console.warn("Failed to parse ScVal as XDR:", e);
-    return null;
+  // If it's already a hydrated ScVal with a switch method, return it
+  if (val && typeof (val as any).switch === 'function') return val as xdr.ScVal;
+  
+  // If it's a string, try to parse it from base64
+  if (typeof val === 'string') {
+    try {
+      return xdr.ScVal.fromXDR(val, 'base64');
+    } catch (e) {
+      console.warn("Failed to parse ScVal string:", e);
+    }
   }
+
+  // If it's a POJO from simulation result, it might need manual hydration
+  try {
+    const xdrString = typeof val === 'string' ? val : (val as any)._value || (val as any).value;
+    if (xdrString && typeof xdrString === 'string') {
+        return xdr.ScVal.fromXDR(xdrString, 'base64');
+    }
+  } catch (e) {
+    console.warn("Failed to hydrate ScVal POJO:", e);
+  }
+
+  return null;
 };
 
 export default function AuctionUI() {
@@ -183,10 +199,23 @@ export default function AuctionUI() {
         const simulatedTx = await server.simulateTransaction(tx);
         if (simulatedTx && rpc.Api.isSimulationSuccess(simulatedTx)) {
           // Update local state with the simulated end time if possible
-          const endTimeScVal = parseScVal(simulatedTx.result?.retval);
-          if (endTimeScVal && endTimeScVal.switch() === xdr.ScValType.scvU64()) {
-            const endTime = Number(endTimeScVal.u64().toString());
-            setAuctionData(prev => ({ ...prev, endTime }));
+          const rawRetval = simulatedTx.result?.retval;
+          const endTimeScVal = parseScVal(rawRetval);
+          
+          if (endTimeScVal) {
+            try {
+              const type = endTimeScVal.switch();
+              if (type === xdr.ScValType.scvU64()) {
+                const endTime = Number(endTimeScVal.u64().toString());
+                setAuctionData(prev => ({ ...prev, endTime }));
+              }
+            } catch (e) {
+              console.warn("Error checking ScVal switch, attempting direct access:", e);
+              // Direct access fallback if switch() fails
+              if ((endTimeScVal as any).u64) {
+                 setAuctionData(prev => ({ ...prev, endTime: Number((endTimeScVal as any).u64().toString()) }));
+              }
+            }
           }
 
           // Assemble and submit for real
@@ -231,21 +260,27 @@ export default function AuctionUI() {
             },
           ],
         });
-
         // Parse events to find the highest bid
         if (response.events && response.events.length > 0) {
           response.events.forEach((event: any) => {
-             console.log("New Event Detected:", event);
               try {
                 // Safely parse XDR string back into ScVal
                 const rawVal = parseScVal(event.value);
                 if (!rawVal) return;
                 
-                // Rust emitted: env.events().publish((symbol_short!("Bid"), bidder), amount);
-                if (rawVal.switch() === xdr.ScValType.scvI128()) {
+                try {
+                  if (rawVal.switch() === xdr.ScValType.scvI128()) {
                     const parsedAmount = Number(rawVal.i128().lo().toString());
                     setHighestBid(parsedAmount);
                     setAuctionData(prev => ({ ...prev, highestBid: parsedAmount }));
+                  }
+                } catch (e) {
+                   // Fallback for missing switch()
+                   if ((rawVal as any).i128) {
+                      const parsedAmount = Number((rawVal as any).i128().lo().toString());
+                      setHighestBid(parsedAmount);
+                      setAuctionData(prev => ({ ...prev, highestBid: parsedAmount }));
+                   }
                 }
              } catch (err) {
                 console.error("Error parsing XDR event value:", err);
@@ -275,14 +310,23 @@ export default function AuctionUI() {
           .setTimeout(TimeoutInfinite)
           .build();
 
-        const simulatedTx = await server.simulateTransaction(getEndTimeTx);
-        if (simulatedTx && rpc.Api.isSimulationSuccess(simulatedTx)) {
-          const endTimeScVal = parseScVal(simulatedTx.result?.retval);
-          if (endTimeScVal && endTimeScVal.switch() === xdr.ScValType.scvU64()) {
-            const endTime = Number(endTimeScVal.u64().toString());
-            setAuctionData(prev => ({ ...prev, endTime }));
+          const simulatedTx = await server.simulateTransaction(getEndTimeTx);
+          if (simulatedTx && rpc.Api.isSimulationSuccess(simulatedTx)) {
+            const rawRetval = simulatedTx.result?.retval;
+            const endTimeScVal = parseScVal(rawRetval);
+            if (endTimeScVal) {
+              try {
+                if (endTimeScVal.switch() === xdr.ScValType.scvU64()) {
+                  const endTime = Number(endTimeScVal.u64().toString());
+                  setAuctionData(prev => ({ ...prev, endTime }));
+                }
+              } catch (e) {
+                 if ((endTimeScVal as any).u64) {
+                    setAuctionData(prev => ({ ...prev, endTime: Number((endTimeScVal as any).u64().toString()) }));
+                 }
+              }
+            }
           }
-        }
 
         // Also fetch user refund if wallet is connected
         if (walletAddress) {
@@ -297,10 +341,20 @@ export default function AuctionUI() {
           
           const refundSim = await server.simulateTransaction(getRefundTx);
           if (refundSim && rpc.Api.isSimulationSuccess(refundSim)) {
-            const refundScVal = parseScVal(refundSim.result?.retval);
-            if (refundScVal && refundScVal.switch() === xdr.ScValType.scvI128()) {
-               const refundAmt = Number(refundScVal.i128().lo().toString());
-               setAuctionData(prev => ({ ...prev, userRefund: refundAmt }));
+            const rawRetval = refundSim.result?.retval;
+            const refundScVal = parseScVal(rawRetval);
+            if (refundScVal) {
+              try {
+                if (refundScVal.switch() === xdr.ScValType.scvI128()) {
+                   const refundAmt = Number(refundScVal.i128().lo().toString());
+                   setAuctionData(prev => ({ ...prev, userRefund: refundAmt }));
+                }
+              } catch (e) {
+                 if ((refundScVal as any).i128) {
+                    const refundAmt = Number((refundScVal as any).i128().lo().toString());
+                    setAuctionData(prev => ({ ...prev, userRefund: refundAmt }));
+                 }
+              }
             }
           }
         }
