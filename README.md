@@ -6,8 +6,8 @@ BrewBid is a real-time decentralized auction platform built on the Stellar netwo
 
 ## 🔗 Official Submission Links
 * **Live Demo:** [https://frontend-chi-wheat-42.vercel.app](https://frontend-chi-wheat-42.vercel.app)
-* **Demo Video:** [[YOUR_VIDEO_URL]]
-* **Feedback Document:** [user_feedback.csv](file:///Users/kartikbotre/Projects/Stellar Mastery Projects/BrewBid/user_feedback.csv)
+* **Demo Video:** [Link to your 1-minute demo video] <!-- TODO: User, please insert your demo video link here -->
+* **Screenshot (3 Passing Tests):** ![Tests Passing](./tests-passing-output.png) <!-- TODO: User, please take a screenshot of 'cargo test' output and name it 'tests-passing-output.png' -->
 
 ---
 
@@ -19,8 +19,6 @@ BrewBid focuses on seamless frontend-to-backend integration within the Stellar e
 * **Wallet Integration:** Utilizes `@stellar/freighter-api` to authenticate users and securely sign `xdr` transactions.
 * **Smart Contract (Soroban/Rust):** Acts as a trustless escrow. It locks the highest bidder's funds and utilizes a "pull" refund mechanism to allow outbid users to securely withdraw their locked funds. Once the block time expires, the contract executes final settlement.
 
-*(Optional: Insert a screenshot of your architecture diagram here)*
-
 ---
 
 ## 👥 User Validation (Blue Belt Requirement)
@@ -28,18 +26,12 @@ BrewBid focuses on seamless frontend-to-backend integration within the Stellar e
 To ensure a polished and frictionless user experience, BrewBid was tested by 5 real testnet users who executed both the "Seller" and "Bidder" flows. 
 
 ### Verifiable Testnet Users
-1. `[User 1 Wallet Address starting with G...]` - [Link to Stellar Expert Explorer]
-2. `[User 2 Wallet Address starting with G...]` - [Link to Stellar Expert Explorer]
-3. `[User 3 Wallet Address starting with G...]` - [Link to Stellar Expert Explorer]
-4. `[User 4 Wallet Address starting with G...]` - [Link to Stellar Expert Explorer]
-5. `[User 5 Wallet Address starting with G...]` - [Link to Stellar Expert Explorer]
+1. `G...` - [View on Stellar.Expert](https://stellar.expert/explorer/testnet/account/...) <!-- TODO: User, add your test user links here -->
 
 ### 🔄 Feedback Iteration & Improvement
-Based on the collected user feedback (see linked Excel sheet above), users noted that there was no visual indication that a bid transaction was processing on the network.
+Based on user feedback, we implemented a loading state on the bidding button that disables input and provides visual feedback during RPC simulation and network submission.
 
-**Implementation:** In the next phase of development, I evolved the project by implementing a loading state on the bidding button that disables the input and provides visual feedback during RPC simulation and network submission.
-
-**Proof of Work (Git Commit):** 🔗 [Insert the direct link to the specific GitHub commit containing this fix]
+**Proof of Work (Git Commit):** [View Commit](https://github.com/KB2410/BrewBid/commit/...) <!-- TODO: User, link the specific commit here -->
 
 ---
 

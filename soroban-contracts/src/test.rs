@@ -101,3 +101,31 @@ fn test_low_bid_fails() {
     client.bid(&bidder, &100);
     client.bid(&bidder, &50); // Should panic
 }
+
+#[test]
+#[should_panic(expected = "Auction has already ended")]
+fn test_bid_after_end_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register_contract(None, BrewBidAuction);
+    let client = BrewBidAuctionClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let bidder = Address::generate(&env);
+    
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract(token_admin);
+    let token_client = token::StellarAssetClient::new(&env, &token_id);
+
+    let item_name = String::from_str(&env, "Test");
+
+    // Initialize with a 1-second duration
+    client.initialize(&admin, &item_name, &token_id, &1);
+    token_client.mint(&bidder, &1000);
+
+    // Advance ledger time by 2 seconds to ensure the auction has ended
+    env.ledger().set_timestamp(env.ledger().timestamp() + 2);
+
+    client.bid(&bidder, &100); // Should panic
+}
